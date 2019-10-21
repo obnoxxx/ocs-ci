@@ -2,7 +2,7 @@
 This module contains platform specific methods and classes for deployment
 on vSphere platform
 """
-import hcl
+#import hcl
 import logging
 import os
 
