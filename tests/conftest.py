@@ -154,17 +154,52 @@ def storageclass_factory_class(
 @pytest.fixture(scope='function')
 def storageclass_factory(
     request,
-    ceph_pool_factory,
-    secret_factory
 ):
     return storageclass_factory_fixture(
         request,
-        ceph_pool_factory,
-        secret_factory
     )
 
 
 def storageclass_factory_fixture(
+    request,
+):
+    """
+    Return Default StorageClass for RBD or CephFS based on Interface
+    """
+    instances = []
+
+    def factory(
+        interface=constants.CEPHBLOCKPOOL,
+    ):
+        """
+        Args:
+            interface (str): CephBlockPool or CephFileSystem. This decides
+                whether a RBD based or CephFS resource is created.
+                RBD is default.
+
+        Returns:
+            object: default create_storage_class instance
+        """
+
+        sc_obj = helpers.create_storage_class(
+            interface_type=interface,
+        )
+        assert sc_obj, f"Failed to create {interface} storage class"
+
+        instances.append(sc_obj)
+        return sc_obj
+
+    def finalizer():
+        """
+        Inform user that
+        """
+        log.info("Skipping delete of default classes")
+
+    request.addfinalizer(finalizer)
+    return factory
+
+
+def storageclass_factory_fixture_internal_test(
     request,
     ceph_pool_factory,
     secret_factory,

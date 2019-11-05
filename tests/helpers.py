@@ -79,6 +79,13 @@ def wait_for_resource_state(resource, state, timeout=60):
             reached the desired state
 
     """
+    if (
+        resource.name == constants.DEFAULT_SECRET
+        or resource.name == constants.DEFAULT_STORAGECLASS_CEPHFS
+        or resource.name == constants.DEFAULT_STORAGECLASS_RBD
+    ):
+        logger.info(f"Attempt to default default Secret or StorageClass")
+        return
     try:
         resource.ocp.wait_for_resource(
             condition=state, resource_name=resource.name, timeout=timeout
@@ -213,6 +220,28 @@ def create_multilpe_projects(number_of_project):
 
 def create_secret(interface_type):
     """
+    Returns the default secret for RBD StorageClass
+
+    Args:
+        interface_type (str): The type of the interface
+            (e.g. CephBlockPool, CephFileSystem)
+
+    Returns:
+        OCS: An OCS instance for the secret
+    """
+    if interface_type == constants.CEPHBLOCKPOOL:
+        base_secret = OCP(
+            kind='secret',
+            namespace=config.ENV_DATA['cluster_namespace'],
+            resource_name=constants.DEFAULT_SECRET
+        )
+    secret = OCS(**base_secret.data)
+
+    return secret
+
+
+def create_secret_old(interface_type):
+    """
     Create a secret
 
     Args:
@@ -248,6 +277,20 @@ def create_secret(interface_type):
 
 
 def create_ceph_block_pool(pool_name=None):
+    """
+    Returns defaul CephBlockPool
+
+    Args:
+        pool_name (str): Ignored for Backward compatibility
+
+    Returns:
+        OCS: An OCS instance for the Ceph block pool
+    """
+    return constants.DEFAULT_BLOCKPOOL
+
+
+
+def create_ceph_block_pool_internal_test(pool_name=None):
     """
     Create a Ceph block pool
 
@@ -300,6 +343,34 @@ def create_ceph_file_system(pool_name=None):
 
 
 def create_storage_class(
+    interface_type,
+):
+    """
+    Return default storage class based on interface_type
+
+    Args:
+        interface_type (str): The type of the interface
+            (e.g. CephBlockPool, CephFileSystem)
+
+    Returns:
+        OCS: Existing StorageClass Instance
+    """
+
+    if interface_type == constants.CEPHBLOCKPOOL:
+        base_sc = OCP(
+            kind='storageclass',
+            resource_name=constants.DEFAULT_STORAGECLASS_RBD
+        )
+    elif interface_type == constants.CEPHFILESYSTEM:
+        base_sc = OCP(
+            kind='storageclass',
+            resource_name=constants.DEFAULT_STORAGECLASS_CEPHFS
+        )
+    sc = OCS(**base_sc.data)
+    return sc
+
+
+def create_storage_class_old(
     interface_type, interface_name, secret_name,
     reclaim_policy=constants.RECLAIM_POLICY_DELETE, sc_name=None,
     provisioner=None

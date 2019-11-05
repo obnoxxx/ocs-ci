@@ -6,6 +6,7 @@ import yaml
 import tempfile
 from ocs_ci.ocs.ocp import OCP
 from ocs_ci.utility import utils
+from ocs_ci.ocs import constants
 from ocs_ci.utility import templating
 
 log = logging.getLogger(__name__)
@@ -109,6 +110,15 @@ class OCS(object):
             bool: True if deleted, False otherwise
 
         """
+        # Avoid accidental delete of default storageclass and secret
+        if (
+            self.name == constants.DEFAULT_SECRET
+            or self.name == constants.DEFAULT_STORAGECLASS_CEPHFS
+            or self.name == constants.DEFAULT_STORAGECLASS_RBD
+        ):
+            log.info(f"Attempt to default default Secret or StorageClass")
+            return
+
         if self._is_deleted:
             log.info(
                 f"Attempt to remove resource: {self.name} which is"
